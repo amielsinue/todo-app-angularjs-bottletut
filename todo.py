@@ -40,8 +40,8 @@ def new_item():
 def edit_item(no):
 
     if request.GET.get('save','').strip():
-        edit = request.GET.get('status','').strip()
-        status = request.GET.get('task','').strip()
+        edit = request.GET.get('task','').strip()
+        status = request.GET.get('status','').strip()
 
         if status == 'open':
             status = 1
@@ -58,7 +58,7 @@ def edit_item(no):
     else:
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("SELECT task FROM todo WHERE id LIKE ?", (str(no)))
+        c.execute("SELECT task, status FROM todo WHERE id LIKE ?", (str(no)))
         cur_data = c.fetchone()
 
         return template('edit_task', old = cur_data, no = no)
