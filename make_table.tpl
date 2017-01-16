@@ -13,7 +13,9 @@
     <td>{{row[0]}}</td>
     <td>{{row[1]}}</td>
     <td>{{row[2]}}</td>
-    <td><a href="/delete/{{row[0]}}"
+    <td>
+        <a href="/edit/{{row[0]}}">Edit</a>
+        <a href="/delete/{{row[0]}}"
         onclick="return confirm('Do you really want to delete this task [{{row[1]}}]?')">Delete</a></td>
   </tr>
 %end
