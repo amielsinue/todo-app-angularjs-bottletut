@@ -9,7 +9,7 @@ def todo_list():
 
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
-    c.execute("SELECT id, task FROM todo WHERE status LIKE '1';")
+    c.execute("SELECT id, task, status FROM todo WHERE status LIKE '1';")
     result = c.fetchall()
     c.close()
 
@@ -76,6 +76,21 @@ def show_item(item):
             return 'This item number does not exist!'
         else:
             return 'Task: %s' %result[0]
+
+@route('/delete/<no:int>', method='GET')
+def delete_item(no):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM todo where id LIKE ?", (str(no)))
+    try:
+        conn.commit()
+    except Exception as e:
+        return 'There was an error trying to remove this task {}'.format(e)
+    finally:
+        c.close()
+    return 'Task {} was successfully removed'.format(no)
+
+
 
 @route('/help')
 def help():
