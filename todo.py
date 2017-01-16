@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from bottle import route, run, debug, template, request, static_file, error
 
 # only needed when you run Bottle on mod_wsgi
@@ -65,7 +66,7 @@ def edit_item(no):
 
 @route('/item<item:re:[0-9]+>')
 def show_item(item):
-
+        json = True if request.GET.get('format','').strip() == 'json' else False
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
         c.execute("SELECT task FROM todo WHERE id LIKE ?", (item))
@@ -73,9 +74,11 @@ def show_item(item):
         c.close()
 
         if not result:
-            return 'This item number does not exist!'
+            error_message = 'This item number does not exist!'
+            return error_message if not json else {'task': error_message}
         else:
-            return 'Task: %s' %result[0]
+            task = result[0]
+            return 'Task: %s' % task if not json else {'Task': task}
 
 @route('/delete/<no:int>', method='GET')
 def delete_item(no):
@@ -96,20 +99,6 @@ def delete_item(no):
 def help():
 
     static_file('help.html', root='.')
-
-@route('/json<json:re:[0-9]+>')
-def show_json(json):
-
-    conn = sqlite3.connect('todo.db')
-    c = conn.cursor()
-    c.execute("SELECT task FROM todo WHERE id LIKE ?", (json))
-    result = c.fetchall()
-    c.close()
-
-    if not result:
-        return {'task':'This item number does not exist!'}
-    else:
-        return {'Task': result[0]}
 
 
 @error(403)
