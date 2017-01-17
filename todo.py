@@ -7,6 +7,11 @@ from bottle import route, run, debug, template, request, static_file, error, res
 from bottle import default_app
 
 def auth(func):
+    '''
+    This method was implemented in task number 6 since was easiest to implement it first
+    :param func:
+    :return:
+    '''
 
     @wraps(func)
     def wrapper(*args, **kwargs):
