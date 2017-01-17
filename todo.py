@@ -19,6 +19,7 @@ def auth(func):
         if not username:
             username = request.get_cookie('username')
         if not username:
+            # This task was already implemented on task number 6 since was easiest
             return 'Invalid credentials'
         kwargs['username'] = username
         return func(*args, **kwargs)
