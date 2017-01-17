@@ -44,23 +44,25 @@ def todo_list():
 
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
-    c.execute("SELECT id, task, status FROM todo WHERE status LIKE '1';")
+    c.execute("SELECT id, task, status, last_edited_by FROM todo WHERE status LIKE '1';")
     result = c.fetchall()
     c.close()
 
-    output = template('make_table', rows=result, user="")
+    username = request.get_cookie('username')
+
+    output = template('make_table', rows=result, user=username)
     return output
 
 @route('/new', method='GET')
 @auth
 def new_item(**kwargs):
-    user = kwargs.get('username')
+    username = kwargs.get('username')
     if request.GET.get('save','').strip():
         new = request.GET.get('task', '').strip()
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
 
-        c.execute("INSERT INTO todo (task,status) VALUES (?,?)", (new,1))
+        c.execute("INSERT INTO todo (task,status, last_edited_by) VALUES (?,?,?)", (new,1, username))
         new_id = c.lastrowid
 
         conn.commit()
@@ -69,12 +71,12 @@ def new_item(**kwargs):
         return '<p>The new task was inserted into the database, the ID is %s</p>' % new_id
 
     else:
-        return template('new_task.tpl', user=user)
+        return template('new_task.tpl', user=username)
 
 @route('/edit/<no:int>', method='GET')
 @auth
 def edit_item(no, **kwargs):
-    user = kwargs.get('username')
+    username = kwargs.get('username')
     if request.GET.get('save','').strip():
         edit = request.GET.get('task','').strip()
         status = request.GET.get('status','').strip()
@@ -86,7 +88,7 @@ def edit_item(no, **kwargs):
 
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("UPDATE todo SET task = ?, status = ? WHERE id LIKE ?", (edit,status,no))
+        c.execute("UPDATE todo SET task = ?, status = ?, last_edited_by = ? WHERE id LIKE ?", (edit,status, username,no))
         conn.commit()
 
         return '<p>The item number %s was successfully updated</p>' %no
@@ -97,7 +99,7 @@ def edit_item(no, **kwargs):
         c.execute("SELECT task, status FROM todo WHERE id LIKE ?", (str(no)))
         cur_data = c.fetchone()
 
-        return template('edit_task', old = cur_data, no = no, user=user)
+        return template('edit_task', old = cur_data, no = no, user=username)
 
 @route('/item<item:re:[0-9]+>')
 def show_item(item):
@@ -118,7 +120,6 @@ def show_item(item):
 @route('/delete/<no:int>', method='GET')
 @auth
 def delete_item(no, **kwargs):
-    user = kwargs.get('username')
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
     c.execute("DELETE FROM todo where id LIKE ?", (str(no)))
