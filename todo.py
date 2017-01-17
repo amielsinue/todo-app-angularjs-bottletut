@@ -1,9 +1,23 @@
 import sqlite3
 import json
+from functools import wraps
 from bottle import route, run, debug, template, request, static_file, error
 
 # only needed when you run Bottle on mod_wsgi
 from bottle import default_app
+
+def auth(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        username = request.GET.get('username')
+        if not username:
+            return 'Invalid credentials'
+        kwargs['username'] = username
+        return func(*args, **kwargs)
+    return wrapper
+
+
 
 @route('/todo')
 def todo_list():
@@ -14,14 +28,14 @@ def todo_list():
     result = c.fetchall()
     c.close()
 
-    output = template('make_table', rows=result)
+    output = template('make_table', rows=result, user="")
     return output
 
 @route('/new', method='GET')
-def new_item():
-
+@auth
+def new_item(**kwargs):
+    user = kwargs.get('username')
     if request.GET.get('save','').strip():
-
         new = request.GET.get('task', '').strip()
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
@@ -35,11 +49,12 @@ def new_item():
         return '<p>The new task was inserted into the database, the ID is %s</p>' % new_id
 
     else:
-        return template('new_task.tpl')
+        return template('new_task.tpl', user=user)
 
 @route('/edit/<no:int>', method='GET')
-def edit_item(no):
-
+@auth
+def edit_item(no, **kwargs):
+    user = kwargs.get('username')
     if request.GET.get('save','').strip():
         edit = request.GET.get('task','').strip()
         status = request.GET.get('status','').strip()
@@ -62,7 +77,7 @@ def edit_item(no):
         c.execute("SELECT task, status FROM todo WHERE id LIKE ?", (str(no)))
         cur_data = c.fetchone()
 
-        return template('edit_task', old = cur_data, no = no)
+        return template('edit_task', old = cur_data, no = no, user=user)
 
 @route('/item<item:re:[0-9]+>')
 def show_item(item):
@@ -81,7 +96,9 @@ def show_item(item):
             return 'Task: %s' % task if not json else {'Task': task}
 
 @route('/delete/<no:int>', method='GET')
-def delete_item(no):
+@auth
+def delete_item(no, **kwargs):
+    user = kwargs.get('username')
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
     c.execute("DELETE FROM todo where id LIKE ?", (str(no)))
