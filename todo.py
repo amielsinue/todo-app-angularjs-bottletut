@@ -1,7 +1,7 @@
 import sqlite3
-import json
+
 from functools import wraps
-from bottle import route, run, debug, template, request, static_file, error
+from bottle import route, run, debug, template, request, static_file, error, response
 
 # only needed when you run Bottle on mod_wsgi
 from bottle import default_app
@@ -12,10 +12,24 @@ def auth(func):
     def wrapper(*args, **kwargs):
         username = request.GET.get('username')
         if not username:
+            username = request.get_cookie('username')
+        if not username:
             return 'Invalid credentials'
         kwargs['username'] = username
         return func(*args, **kwargs)
     return wrapper
+
+
+@route('/login')
+def login():
+    if request.GET.get('username'):
+        username = request.GET.get('username').strip()
+        response.set_cookie('username', username, path='/')
+        response.body = "Welcome: {}".format(username)
+        return response
+    else:
+        return template('login.tpl')
+
 
 
 
