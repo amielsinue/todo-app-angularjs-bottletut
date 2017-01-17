@@ -1,10 +1,11 @@
 import sqlite3
 
 from functools import wraps
-from bottle import route, run, debug, template, request, static_file, error, response
+from bottle import route, run, debug, template, request, static_file, error, response, redirect
 
 # only needed when you run Bottle on mod_wsgi
 from bottle import default_app
+
 
 def auth(func):
     '''
@@ -12,7 +13,6 @@ def auth(func):
     :param func:
     :return:
     '''
-
     @wraps(func)
     def wrapper(*args, **kwargs):
         username = request.GET.get('username')
@@ -37,79 +37,66 @@ def login():
         return template('login.tpl')
 
 
-
-
 @route('/todo')
 def todo_list():
-
+    username = request.get_cookie('username')
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
     c.execute("SELECT id, task, status, last_edited_by FROM todo WHERE status LIKE '1';")
     result = c.fetchall()
     c.close()
 
-    username = request.get_cookie('username')
-
-    output = template('make_table', rows=result, user=username)
+    output = template('make_table', rows=result, user=username, message=request.GET.get('m'), message_class="success")
     return output
+
 
 @route('/new', method='GET')
 @auth
 def new_item(**kwargs):
     username = kwargs.get('username')
-    if request.GET.get('save','').strip():
+    if request.GET.get('save', '').strip():
         new = request.GET.get('task', '').strip()
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-
-        c.execute("INSERT INTO todo (task,status, last_edited_by) VALUES (?,?,?)", (new,1, username))
+        c.execute("INSERT INTO todo (task,status, last_edited_by) VALUES (?,?,?)", (new, 1, username))
         new_id = c.lastrowid
-
         conn.commit()
         c.close()
-
-        return '<p>The new task was inserted into the database, the ID is %s</p>' % new_id
-
+        redirect('/todo?m=The new task was inserted into the database, the ID is {}'.format(new_id))
     else:
-        return template('new_task.tpl', user=username)
+        base = template('new_task.tpl')
+        return template('index.tpl', base=base, title="New Task")
+
 
 @route('/edit/<no:int>', method='GET')
 @auth
 def edit_item(no, **kwargs):
     username = kwargs.get('username')
-    if request.GET.get('save','').strip():
-        edit = request.GET.get('task','').strip()
-        status = request.GET.get('status','').strip()
-
-        if status == 'open':
-            status = 1
-        else:
-            status = 0
-
+    if request.GET.get('save', '').strip():
+        edit = request.GET.get('task', '').strip()
+        status = request.GET.get('status', '').strip()
+        status = 1 if status == 'open' else 0
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("UPDATE todo SET task = ?, status = ?, last_edited_by = ? WHERE id LIKE ?", (edit,status, username,no))
+        c.execute("UPDATE todo SET task = ?, status = ?, last_edited_by = ? WHERE id = ?", (edit, status, username, no))
         conn.commit()
-
-        return '<p>The item number %s was successfully updated</p>' %no
-
+        redirect('/todo?m=The item number {} was successfully updated'.format(no))
     else:
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("SELECT task, status FROM todo WHERE id LIKE ?", (str(no)))
+        c.execute("SELECT task, status FROM todo WHERE id = :id", (str(no),))
         cur_data = c.fetchone()
+        return template('edit_task', old=cur_data, no=no, user=username)
 
-        return template('edit_task', old = cur_data, no = no, user=username)
 
 @route('/item<item:re:[0-9]+>')
 def show_item(item):
-        json = True if request.GET.get('format','').strip() == 'json' else False
+        json = True if request.GET.get('format', '').strip() == 'json' else False
         conn = sqlite3.connect('todo.db')
         c = conn.cursor()
-        c.execute("SELECT task FROM todo WHERE id LIKE ?", (item))
+        c.execute("SELECT task FROM todo WHERE id = ?", (item,))
         result = c.fetchall()
         c.close()
-
         if not result:
             error_message = 'This item number does not exist!'
             return error_message if not json else {'task': error_message}
@@ -117,25 +104,26 @@ def show_item(item):
             task = result[0]
             return 'Task: %s' % task if not json else {'Task': task}
 
+
 @route('/delete/<no:int>', method='GET')
 @auth
-def delete_item(no, **kwargs):
+def delete_item(no):
     conn = sqlite3.connect('todo.db')
     c = conn.cursor()
-    c.execute("DELETE FROM todo where id LIKE ?", (str(no)))
+    c.execute("DELETE FROM todo where id = :id", (str(no),))
     try:
         conn.commit()
+        message = 'Task {} was successfully removed'.format(no)
     except Exception as e:
-        return 'There was an error trying to remove this task {}'.format(e)
+        message = 'There was an error trying to remove this task {}'.format(e)
     finally:
         c.close()
-    return 'Task {} was successfully removed'.format(no)
 
+    redirect('/todo?m={}'.format(message))
 
 
 @route('/help')
-def help():
-
+def _help():
     static_file('help.html', root='.')
 
 
@@ -150,4 +138,5 @@ def mistake404(code):
 
 debug(True)
 run(reloader=True)
-#remember to remove reloader=True and debug(True) when you move your application from development to a productive environment
+# remember to remove reloader=True and debug(True) when you move your application
+# from development to a productive environment
