@@ -1,1 +1,1 @@
-web: run-program python todo.py
+web: python todo.py
