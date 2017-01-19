@@ -1,0 +1,19 @@
+<table border="1" class="table table-bordered table-condensed">
+ <thead>
+    <th>Id</th>
+    <th>Task</th>
+    <!--<th>Status</th>-->
+    <th>Last Edited By</th>
+    <th></th>
+  </thead>
+  <tr ng-repeat="row in tasks">
+    <td>{{row[0]}}</td>
+    <td>{{row[1]}}</td>
+    <!--<td>{{row[2]}}</td>-->
+    <td>{{row[3]}}</td>
+    <td>
+        <todo-edit>row</todo-edit>
+        <a href="javascript:void(0);" ng-click="delete(row[0])"><i class="glyphicon glyphicon-trash"></i></a>
+    </td>
+  </tr>
+</table>

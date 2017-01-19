@@ -1,0 +1,22 @@
+{
+  "name": "todo-app",
+  "version": "1.0.0",
+  "description": "Simple Todo app",
+  "author": "Amiel Yanez <amielsinue@gmail.com>",
+  "contributors": [
+    {
+      "name": "Amiel Yanez",
+      "email": "amielsinue@gmail.com"
+    }
+  ],
+  "devDependencies": {
+    "angular": "^1.6.1",
+    "babel-core": "^6.21.0",
+    "babel-loader": "^6.2.10",
+    "es6-promise": "^4.0.5",
+    "sweetalert2": "^6.3.2",
+    "toastr": "^2.1.2",
+    "underscore": "1.8.3",
+    "webpack": "^1.14.0"
+  }
+}
